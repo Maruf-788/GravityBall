@@ -1,0 +1,164 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Floppy Bird</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      background: linear-gradient(to bottom, skyblue, lightgreen);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Game variables
+    let birdY = canvas.height / 2;
+    let birdX = canvas.width / 6;
+    let gravity = 1.5;
+    let lift = -20;
+    let velocity = 0;
+    const birdSize = 20;
+    let pipes = [];
+    const pipeWidth = 70;
+    const pipeGap = 200;
+    const pipeSpeed = 3;
+    let score = 0;
+    let gameOver = false;
+
+    // Add touch and keyboard controls
+    function flap() {
+      velocity = lift;
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space") flap();
+    });
+
+    window.addEventListener("touchstart", flap);
+
+    // Pipe generator
+    function addPipe() {
+      const topHeight = Math.random() * (canvas.height / 2);
+      const bottomHeight = canvas.height - topHeight - pipeGap;
+      pipes.push({
+        x: canvas.width,
+        topHeight: topHeight,
+        bottomHeight: bottomHeight,
+      });
+    }
+
+    setInterval(addPipe, 1500);
+
+    function drawBird() {
+      ctx.fillStyle = "yellow";
+      ctx.beginPath();
+      ctx.arc(birdX, birdY, birdSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawPipes() {
+      ctx.fillStyle = "green";
+      pipes.forEach((pipe, index) => {
+        pipe.x -= pipeSpeed;
+
+        // Draw top pipe
+        ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+
+        // Draw bottom pipe
+        ctx.fillRect(pipe.x, canvas.height - pipe.bottomHeight, pipeWidth, pipe.bottomHeight);
+
+        // Check for collision
+        if (
+          birdX + birdSize > pipe.x &&
+          birdX - birdSize < pipe.x + pipeWidth &&
+          (birdY - birdSize < pipe.topHeight || birdY + birdSize > canvas.height - pipe.bottomHeight)
+        ) {
+          gameOver = true;
+        }
+
+        // Remove pipe if out of screen and update score
+        if (pipe.x + pipeWidth < 0) {
+          pipes.splice(index, 1);
+          score++;
+        }
+      });
+    }
+
+    function displayScore() {
+      ctx.fillStyle = "black";
+      ctx.font = "30px Arial";
+      ctx.fillText(`Score: ${score}`, 20, 40);
+    }
+
+    function endGame() {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "white";
+      ctx.font = "40px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(`Game Over! Score: ${score}`, canvas.width / 2, canvas.height / 2);
+
+      ctx.font = "20px Arial";
+      ctx.fillText("Press Space or Tap to Restart", canvas.width / 2, canvas.height / 2 + 40);
+
+      window.addEventListener("keydown", restartGame);
+      window.addEventListener("touchstart", restartGame);
+    }
+
+    function restartGame() {
+      window.removeEventListener("keydown", restartGame);
+      window.removeEventListener("touchstart", restartGame);
+
+      birdY = canvas.height / 2;
+      velocity = 0;
+      pipes = [];
+      score = 0;
+      gameOver = false;
+      updateGame();
+    }
+
+    function updateGame() {
+      if (gameOver) {
+        endGame();
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Bird physics
+      velocity += gravity;
+      birdY += velocity;
+
+      // Draw bird, pipes, and score
+      drawBird();
+      drawPipes();
+      displayScore();
+
+      // Check for collision with ground or ceiling
+      if (birdY + birdSize > canvas.height || birdY - birdSize < 0) {
+        gameOver = true;
+      }
+
+      requestAnimationFrame(updateGame);
+    }
+
+    updateGame();
+  </script>
+</body>
+</html>
